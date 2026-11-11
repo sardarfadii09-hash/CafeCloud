@@ -13,8 +13,51 @@ const adminRoutes = require("./routes/adminRoutes");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: "http://localhost:5173" }));
+// ---------- MIDDLEWARE ----------
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  ...(process.env.CLIENT_URL || "")
+    .split(",")
+    .map((url) => url.trim().replace(/\/$/, ""))
+    .filter(Boolean),
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      const normalizedOrigin = origin
+        ? origin.replace(/\/$/, "")
+        : null;
+
+      if (!normalizedOrigin || allowedOrigins.includes(normalizedOrigin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
+
 app.use(express.json({ limit: "1mb" }));
+
+// ---------- DATABASE CONNECTION ----------
+
+// Connect before database-dependent API requests.
+// This also supports Vercel serverless functions.
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("Database connection failed:", error.message);
+
+    return res.status(503).json({
+      success: false,
+      message: "Database connection unavailable.",
+    });
+  }
+});
 
 // ---------- AUTHENTICATION ----------
 
@@ -29,6 +72,10 @@ const requireAdmin = (req, res, next) => {
   }
 
   try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is missing.");
+    }
+
     const token = authorization.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -41,7 +88,7 @@ const requireAdmin = (req, res, next) => {
 
     req.admin = decoded;
     next();
-  } catch {
+  } catch (error) {
     return res.status(401).json({
       success: false,
       message: "Session expired. Please log in again.",
@@ -115,10 +162,21 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const MenuItem = mongoose.model("CafeMenuItem", menuSchema);
-const Reservation = mongoose.model("CafeReservation", reservationSchema);
-const Order = mongoose.model("CafeOrder", orderSchema);
-const ContactMessage = mongoose.model("CafeContactMessage", messageSchema);
+const MenuItem =
+  mongoose.models.CafeMenuItem ||
+  mongoose.model("CafeMenuItem", menuSchema);
+
+const Reservation =
+  mongoose.models.CafeReservation ||
+  mongoose.model("CafeReservation", reservationSchema);
+
+const Order =
+  mongoose.models.CafeOrder ||
+  mongoose.model("CafeOrder", orderSchema);
+
+const ContactMessage =
+  mongoose.models.CafeContactMessage ||
+  mongoose.model("CafeContactMessage", messageSchema);
 
 // ---------- BASIC ROUTES ----------
 
@@ -130,10 +188,14 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({ success: true, message: "Backend is healthy" });
+  res.json({
+    success: true,
+    message: "Backend is healthy",
+  });
 });
 
-// Admin setup/login routes
+// ---------- ADMIN LOGIN ROUTES ----------
+
 app.use("/api/admin", adminRoutes);
 
 // ---------- MENU ----------
@@ -147,7 +209,11 @@ app.get("/api/menu", async (req, res) => {
 
     res.json({ success: true, items });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Could not load menu." });
+    console.error("Menu loading error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Could not load menu.",
+    });
   }
 });
 
@@ -157,7 +223,11 @@ app.get("/api/menu/admin", requireAdmin, async (req, res) => {
     const items = await MenuItem.find().sort({ createdAt: -1 });
     res.json({ success: true, items });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Could not load menu." });
+    console.error("Admin menu error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Could not load menu.",
+    });
   }
 });
 
@@ -184,25 +254,37 @@ app.post("/api/menu", requireAdmin, async (req, res) => {
 
     res.status(201).json({ success: true, item });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Could not add menu item." });
+    console.error("Menu creation error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: "Could not add menu item.",
+    });
   }
 });
 
 // Admin: edit menu item
 app.patch("/api/menu/:id", requireAdmin, async (req, res) => {
   try {
-    const item = await MenuItem.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const item = await MenuItem.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
 
     if (!item) {
-      return res.status(404).json({ success: false, message: "Item not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Item not found.",
+      });
     }
 
     res.json({ success: true, item });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Could not update item." });
+    console.error("Menu update error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: "Could not update item.",
+    });
   }
 });
 
@@ -212,12 +294,22 @@ app.delete("/api/menu/:id", requireAdmin, async (req, res) => {
     const item = await MenuItem.findByIdAndDelete(req.params.id);
 
     if (!item) {
-      return res.status(404).json({ success: false, message: "Item not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Item not found.",
+      });
     }
 
-    res.json({ success: true, message: "Menu item deleted." });
+    res.json({
+      success: true,
+      message: "Menu item deleted.",
+    });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Could not delete item." });
+    console.error("Menu deletion error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: "Could not delete item.",
+    });
   }
 });
 
@@ -251,27 +343,46 @@ app.post("/api/reservations", async (req, res) => {
       reservation,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Could not save reservation." });
+    console.error("Reservation error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: "Could not save reservation.",
+    });
   }
 });
 
 // Admin: list reservations
 app.get("/api/reservations", requireAdmin, async (req, res) => {
   try {
-    const reservations = await Reservation.find().sort({ createdAt: -1 });
+    const reservations = await Reservation.find().sort({
+      createdAt: -1,
+    });
+
     res.json({ success: true, reservations });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Could not load reservations." });
+    console.error("Reservations loading error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Could not load reservations.",
+    });
   }
 });
 
 // Admin: update reservation status
 app.patch("/api/reservations/:id", requireAdmin, async (req, res) => {
   try {
-    const allowed = ["pending", "confirmed", "cancelled", "completed"];
+    const allowed = [
+      "pending",
+      "confirmed",
+      "cancelled",
+      "completed",
+    ];
 
     if (!allowed.includes(req.body.status)) {
-      return res.status(400).json({ success: false, message: "Invalid status." });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status.",
+      });
     }
 
     const reservation = await Reservation.findByIdAndUpdate(
@@ -281,12 +392,19 @@ app.patch("/api/reservations/:id", requireAdmin, async (req, res) => {
     );
 
     if (!reservation) {
-      return res.status(404).json({ success: false, message: "Reservation not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Reservation not found.",
+      });
     }
 
     res.json({ success: true, reservation });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Could not update reservation." });
+    console.error("Reservation update error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: "Could not update reservation.",
+    });
   }
 });
 
@@ -310,7 +428,7 @@ app.post("/api/orders", async (req, res) => {
       });
     }
 
-    // Calculate total from current database prices, not browser-supplied prices.
+    // Verify current menu prices on the server.
     let verifiedItems = [];
     let total = 0;
 
@@ -322,7 +440,12 @@ app.post("/api/orders", async (req, res) => {
 
       const quantity = Number(requested.quantity);
 
-      if (!menuItem || !Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
+      if (
+        !menuItem ||
+        !Number.isInteger(quantity) ||
+        quantity < 1 ||
+        quantity > 50
+      ) {
         return res.status(400).json({
           success: false,
           message: "An order item or quantity is invalid.",
@@ -353,7 +476,11 @@ app.post("/api/orders", async (req, res) => {
       order,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Could not save order." });
+    console.error("Order creation error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: "Could not save order.",
+    });
   }
 });
 
@@ -363,17 +490,30 @@ app.get("/api/orders", requireAdmin, async (req, res) => {
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json({ success: true, orders });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Could not load orders." });
+    console.error("Orders loading error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Could not load orders.",
+    });
   }
 });
 
 // Admin: update order status
 app.patch("/api/orders/:id", requireAdmin, async (req, res) => {
   try {
-    const allowed = ["pending", "confirmed", "preparing", "completed", "cancelled"];
+    const allowed = [
+      "pending",
+      "confirmed",
+      "preparing",
+      "completed",
+      "cancelled",
+    ];
 
     if (!allowed.includes(req.body.status)) {
-      return res.status(400).json({ success: false, message: "Invalid status." });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status.",
+      });
     }
 
     const order = await Order.findByIdAndUpdate(
@@ -383,12 +523,19 @@ app.patch("/api/orders/:id", requireAdmin, async (req, res) => {
     );
 
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Order not found.",
+      });
     }
 
     res.json({ success: true, order });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Could not update order." });
+    console.error("Order update error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: "Could not update order.",
+    });
   }
 });
 
@@ -419,17 +566,28 @@ app.post("/api/messages", async (req, res) => {
       contactMessage: savedMessage,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Could not save message." });
+    console.error("Contact message error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: "Could not save message.",
+    });
   }
 });
 
 // Admin: list messages
 app.get("/api/messages", requireAdmin, async (req, res) => {
   try {
-    const messages = await ContactMessage.find().sort({ createdAt: -1 });
+    const messages = await ContactMessage.find().sort({
+      createdAt: -1,
+    });
+
     res.json({ success: true, messages });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Could not load messages." });
+    console.error("Messages loading error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Could not load messages.",
+    });
   }
 });
 
@@ -443,12 +601,22 @@ app.patch("/api/messages/:id", requireAdmin, async (req, res) => {
     );
 
     if (!savedMessage) {
-      return res.status(404).json({ success: false, message: "Message not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Message not found.",
+      });
     }
 
-    res.json({ success: true, contactMessage: savedMessage });
+    res.json({
+      success: true,
+      contactMessage: savedMessage,
+    });
   } catch (error) {
-    res.status(400).json({ success: false, message: "Could not update message." });
+    console.error("Message update error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: "Could not update message.",
+    });
   }
 });
 
@@ -456,16 +624,23 @@ app.patch("/api/messages/:id", requireAdmin, async (req, res) => {
 
 app.get("/api/admin/stats", requireAdmin, async (req, res) => {
   try {
-    const [menuCount, reservationCount, orderCount, messageCount, pendingReservations, pendingOrders, unreadMessages] =
-      await Promise.all([
-        MenuItem.countDocuments(),
-        Reservation.countDocuments(),
-        Order.countDocuments(),
-        ContactMessage.countDocuments(),
-        Reservation.countDocuments({ status: "pending" }),
-        Order.countDocuments({ status: "pending" }),
-        ContactMessage.countDocuments({ isRead: false }),
-      ]);
+    const [
+      menuCount,
+      reservationCount,
+      orderCount,
+      messageCount,
+      pendingReservations,
+      pendingOrders,
+      unreadMessages,
+    ] = await Promise.all([
+      MenuItem.countDocuments(),
+      Reservation.countDocuments(),
+      Order.countDocuments(),
+      ContactMessage.countDocuments(),
+      Reservation.countDocuments({ status: "pending" }),
+      Order.countDocuments({ status: "pending" }),
+      ContactMessage.countDocuments({ isRead: false }),
+    ]);
 
     res.json({
       success: true,
@@ -480,16 +655,26 @@ app.get("/api/admin/stats", requireAdmin, async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Could not load dashboard stats." });
+    console.error("Dashboard stats error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Could not load dashboard stats.",
+    });
   }
 });
 
 // ---------- ERROR HANDLING ----------
 
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: "API route not found." });
+  res.status(404).json({
+    success: false,
+    message: "API route not found.",
+  });
 });
 
+// ---------- LOCAL SERVER ----------
+
+// Vercel imports the Express app instead of calling app.listen().
 const startServer = async () => {
   try {
     await connectDB();
@@ -503,4 +688,8 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
