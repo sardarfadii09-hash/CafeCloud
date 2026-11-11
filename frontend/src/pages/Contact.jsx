@@ -1,6 +1,7 @@
 
 import { useState } from 'react'
 import Navbar from '../components/Navbar'
+import API_BASE_URL from '../services/api'
 import {
   Phone,
   Mail,
@@ -16,7 +17,6 @@ function Contact() {
     e.preventDefault()
 
     const form = e.currentTarget
-
     const formData = new FormData(form)
 
     const messageData = {
@@ -29,7 +29,7 @@ function Contact() {
     try {
       setIsSubmitting(true)
 
-      const response = await fetch('http://localhost:5000/api/messages', {
+      const response = await fetch(`${API_BASE_URL}/api/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

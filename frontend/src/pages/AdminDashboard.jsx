@@ -14,7 +14,9 @@ import {
   CircleAlert
 } from 'lucide-react'
 
-const API = 'http://localhost:5000/api'
+import API_BASE_URL from '../services/api'
+
+const API = `${API_BASE_URL}/api`
 
 function getAdminToken() {
   return (
@@ -29,6 +31,7 @@ function getAdminToken() {
 
 function AdminDashboard() {
   const navigate = useNavigate()
+
   const [stats, setStats] = useState({
     menuCount: 0,
     reservationCount: 0,
@@ -38,6 +41,7 @@ function AdminDashboard() {
     pendingOrders: 0,
     unreadMessages: 0
   })
+
   const [reservations, setReservations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -47,6 +51,7 @@ function AdminDashboard() {
       localStorage.removeItem(key)
       sessionStorage.removeItem(key)
     })
+
     navigate('/admin-login')
   }
 
@@ -102,9 +107,10 @@ function AdminDashboard() {
         setReservations(
           (Array.isArray(list) ? list : [])
             .slice()
-            .sort((a, b) =>
-              new Date(b.createdAt || b.date || 0) -
-              new Date(a.createdAt || a.date || 0)
+            .sort(
+              (a, b) =>
+                new Date(b.createdAt || b.date || 0) -
+                new Date(a.createdAt || a.date || 0)
             )
             .slice(0, 4)
         )
@@ -145,8 +151,10 @@ function AdminDashboard() {
 
   const statusClass = (status) => {
     const value = (status || 'pending').toLowerCase()
+
     if (value === 'confirmed') return 'confirmed'
     if (value === 'cancelled') return 'cancelled'
+
     return 'pending'
   }
 

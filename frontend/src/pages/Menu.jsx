@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Search, ShoppingBag } from 'lucide-react'
 import Navbar from '../components/Navbar'
+import API_BASE_URL from '../services/api'
 
 function Menu() {
   const [selectedCategory, setSelectedCategory] = useState('All')
@@ -18,7 +19,7 @@ function Menu() {
         setLoading(true)
         setError('')
 
-        const response = await fetch('http://localhost:5000/api/menu')
+        const response = await fetch(`${API_BASE_URL}/api/menu`)
         const data = await response.json()
 
         if (!response.ok || !data.success) {
@@ -145,7 +146,6 @@ function Menu() {
             </div>
 
             <div className="menu-toolbar">
-
               <div className="menu-search">
                 <Search size={20} />
 
@@ -173,7 +173,6 @@ function Menu() {
                   </button>
                 ))}
               </div>
-
             </div>
 
             {loading && (
@@ -198,7 +197,6 @@ function Menu() {
                       className="menu-card card"
                       key={item.id}
                     >
-
                       <div className="menu-card-image">
                         <img
                           src={item.image}
@@ -211,7 +209,6 @@ function Menu() {
                       </div>
 
                       <div className="menu-card-content">
-
                         <div className="menu-card-top">
                           <h3>{item.name}</h3>
 
@@ -230,9 +227,7 @@ function Menu() {
                           <ShoppingBag size={18} />
                           Add to Cart
                         </button>
-
                       </div>
-
                     </div>
                   ))}
                 </div>

@@ -10,7 +10,9 @@ import {
   X
 } from 'lucide-react'
 
-const API = 'http://localhost:5000/api/menu'
+import API_BASE_URL from '../services/api'
+
+const API = `${API_BASE_URL}/api/menu`
 
 const categories = ['All', 'Coffee', 'Cold Drinks', 'Food', 'Desserts']
 
@@ -83,7 +85,6 @@ function AdminMenu() {
 
   useEffect(() => {
     loadItems()
-    // Load menu when this page opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

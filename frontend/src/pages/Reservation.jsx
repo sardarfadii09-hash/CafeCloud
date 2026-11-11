@@ -1,6 +1,7 @@
 
 import { useState } from 'react'
 import Navbar from '../components/Navbar'
+import API_BASE_URL from '../services/api'
 import {
   CalendarDays,
   Clock3,
@@ -43,7 +44,7 @@ function Reservation() {
     setFeedback({ type: '', message: '' })
 
     try {
-      const response = await fetch('http://localhost:5000/api/reservations', {
+      const response = await fetch(`${API_BASE_URL}/api/reservations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

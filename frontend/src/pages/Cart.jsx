@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 
 import Navbar from '../components/Navbar'
+import API_BASE_URL from '../services/api'
 
 function Cart() {
   const [cart, setCart] = useState(() => {
@@ -116,7 +117,7 @@ function Cart() {
       }))
 
       const response = await fetch(
-        'http://localhost:5000/api/orders',
+        `${API_BASE_URL}/api/orders`,
         {
           method: 'POST',
           headers: {
@@ -170,11 +171,9 @@ function Cart() {
       <Navbar />
 
       <main className="cart-page">
-
         <section className="cart-hero">
           <div className="cart-hero-overlay">
             <div className="container cart-hero-content">
-
               <div className="cart-hero-badge">
                 <Coffee size={16} />
                 CAFECLOUD
@@ -193,14 +192,12 @@ function Cart() {
               <p>
                 Everything you've selected, gathered in one place.
               </p>
-
             </div>
           </div>
         </section>
 
         <section className="section cart-section">
           <div className="container">
-
             {feedback.message && (
               <p
                 role="status"
@@ -219,9 +216,7 @@ function Cart() {
             )}
 
             {cart.length === 0 ? (
-
               <div className="cart-empty">
-
                 <div className="cart-empty-icon">
                   <ShoppingBag size={36} />
                 </div>
@@ -251,17 +246,11 @@ function Cart() {
                   Explore Menu
                   <ArrowRight size={18} />
                 </Link>
-
               </div>
-
             ) : (
-
               <div className="cart-layout">
-
                 <div className="cart-items-card">
-
                   <div className="cart-card-header">
-
                     <div>
                       <span className="section-label">
                         YOUR SELECTION
@@ -283,18 +272,14 @@ function Cart() {
                       <Trash2 size={15} />
                       Clear Cart
                     </button>
-
                   </div>
 
                   <div className="cart-items">
-
                     {cart.map((item) => (
-
                       <article
                         className="cart-item"
                         key={item.id}
                       >
-
                         <div className="cart-item-image">
                           <img
                             src={item.image}
@@ -319,9 +304,7 @@ function Cart() {
                         </div>
 
                         <div className="cart-item-controls">
-
                           <div className="cart-quantity">
-
                             <button
                               type="button"
                               onClick={() =>
@@ -343,7 +326,6 @@ function Cart() {
                             >
                               <Plus size={15} />
                             </button>
-
                           </div>
 
                           <button
@@ -354,26 +336,19 @@ function Cart() {
                           >
                             <Trash2 size={17} />
                           </button>
-
                         </div>
-
                       </article>
-
                     ))}
-
                   </div>
 
                   <Link to="/menu" className="cart-continue">
                     <ArrowLeft size={17} />
                     Continue Shopping
                   </Link>
-
                 </div>
 
                 <aside className="cart-summary">
-
                   <div className="cart-summary-top">
-
                     <span className="section-label">
                       ORDER SUMMARY
                     </span>
@@ -383,11 +358,9 @@ function Cart() {
                     <p>
                       A little something good is on its way.
                     </p>
-
                   </div>
 
                   <div className="cart-summary-details">
-
                     <div className="cart-summary-row">
                       <span>Items</span>
                       <strong>{totalItems}</strong>
@@ -404,7 +377,6 @@ function Cart() {
                         At checkout
                       </strong>
                     </div>
-
                   </div>
 
                   <div className="cart-summary-total">
@@ -417,7 +389,6 @@ function Cart() {
                   </div>
 
                   {!checkoutOpen ? (
-
                     <button
                       type="button"
                       className="cart-checkout-button"
@@ -429,9 +400,7 @@ function Cart() {
                       Proceed to Checkout
                       <ArrowRight size={18} />
                     </button>
-
                   ) : (
-
                     <form
                       onSubmit={handleCheckout}
                       style={{
@@ -440,7 +409,6 @@ function Cart() {
                         gap: '14px'
                       }}
                     >
-
                       <h3>Customer Details</h3>
 
                       <div className="form-group">
@@ -525,9 +493,7 @@ function Cart() {
                       >
                         Back to Cart
                       </button>
-
                     </form>
-
                   )}
 
                   <div className="cart-secure">
@@ -540,16 +506,11 @@ function Cart() {
                       </span>
                     </div>
                   </div>
-
                 </aside>
-
               </div>
-
             )}
-
           </div>
         </section>
-
       </main>
     </>
   )

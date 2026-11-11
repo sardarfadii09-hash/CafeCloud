@@ -2,6 +2,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, LockKeyhole, Mail, ArrowLeft } from 'lucide-react'
+import API_BASE_URL from '../services/api'
+
+const API = `${API_BASE_URL}/api`
 
 function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false)
@@ -19,7 +22,7 @@ function AdminLogin() {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/admin/login', {
+      const response = await fetch(`${API}/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -30,7 +33,9 @@ function AdminLogin() {
       const data = await response.json()
 
       if (!response.ok || !data.token) {
-        throw new Error(data.message || 'Login failed. Email aur password check karo.')
+        throw new Error(
+          data.message || 'Login failed. Email aur password check karo.'
+        )
       }
 
       const storage = remember ? localStorage : sessionStorage
@@ -48,7 +53,7 @@ function AdminLogin() {
     } catch (err) {
       setError(
         err.message === 'Failed to fetch'
-          ? 'Backend band hai. Backend terminal check karo.'
+          ? 'Server se connection nahi ho saka. Internet aur backend check karo.'
           : err.message || 'Login nahi ho saka.'
       )
     } finally {
