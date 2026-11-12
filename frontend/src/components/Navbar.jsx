@@ -1,3 +1,4 @@
+
 import { Link, NavLink } from 'react-router-dom'
 import { ShoppingBag, Menu, X } from 'lucide-react'
 import { useState } from 'react'
@@ -22,6 +23,20 @@ function Navbar() {
           <NavLink to="/reservation" onClick={closeMenu}>Reservation</NavLink>
           <NavLink to="/about" onClick={closeMenu}>About</NavLink>
           <NavLink to="/contact" onClick={closeMenu}>Contact</NavLink>
+
+          <NavLink
+            to="/admin-login"
+            onClick={closeMenu}
+            style={({ isActive }) => ({
+              color: isActive ? '#ffffff' : '#6f4e37',
+              backgroundColor: isActive ? '#6f4e37' : '#f8f3ec',
+              padding: '9px 14px',
+              borderRadius: '8px',
+              fontWeight: 600
+            })}
+          >
+            Admin Login
+          </NavLink>
         </nav>
 
         <div className="nav-actions">

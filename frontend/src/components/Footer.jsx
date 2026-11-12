@@ -1,9 +1,12 @@
+
 import { Link } from 'react-router-dom'
 import {
   MapPin,
   Phone,
   Mail,
-  ArrowUpRight
+  ArrowUpRight,
+  Coffee,
+  Sparkles
 } from 'lucide-react'
 
 function Footer() {
@@ -76,16 +79,12 @@ function Footer() {
 
               <div>
                 <MapPin size={17} />
-                <span>
-                  Main Boulevard,
-                  <br />
-                  Abbottabad
-                </span>
+                <span>Abbottabad, the Heart of Hazara</span>
               </div>
 
               <div>
                 <Phone size={17} />
-                <span>+92 300 1234567</span>
+                <span>03375657896</span>
               </div>
 
               <div>
@@ -105,18 +104,8 @@ function Footer() {
             <div className="footer-hours">
 
               <div>
-                <span>Monday — Friday</span>
-                <strong>10:00 AM — 11:00 PM</strong>
-              </div>
-
-              <div>
-                <span>Saturday</span>
-                <strong>10:00 AM — 12:00 AM</strong>
-              </div>
-
-              <div>
-                <span>Sunday</span>
-                <strong>11:00 AM — 11:00 PM</strong>
+                <span>Every Day</span>
+                <strong>10:00 AM — 3:00 AM</strong>
               </div>
 
             </div>
@@ -126,18 +115,78 @@ function Footer() {
         </div>
       </div>
 
-      {/* BOTTOM BAR */}
+      {/* PREMIUM BOTTOM BAR */}
       <div className="footer-bottom">
 
         <div className="container footer-bottom-inner">
 
           <p>
-            © 2026 CafeCloud. All rights reserved.
+            © 2026 CafeCloud. All Rights Reserved.
           </p>
 
-          <span>
-            Crafted with ☕ &amp; passion.
-          </span>
+          {/* CREATOR SIGNATURE */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '9px 17px 9px 10px',
+              border: '1px solid rgba(190, 145, 99, 0.45)',
+              borderRadius: '50px',
+              background: 'linear-gradient(135deg, rgba(111, 78, 55, 0.35), rgba(36, 22, 15, 0.9))',
+              boxShadow: '0 4px 18px rgba(0, 0, 0, 0.18)',
+              color: '#e7c49c'
+            }}
+          >
+            <span
+              style={{
+                width: '37px',
+                height: '37px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'linear-gradient(145deg, #b78b60, #6f4e37)',
+                color: '#fff8ef',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}
+            >
+              <Coffee size={20} />
+            </span>
+
+            <span
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px'
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '9px',
+                  letterSpacing: '2px',
+                  color: '#c7a47e'
+                }}
+              >
+                CRAFTED WITH PASSION
+              </span>
+
+              <span
+                style={{
+                  fontFamily: 'Playfair Display, serif',
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  letterSpacing: '0.5px',
+                  color: '#f5dfc4'
+                }}
+              >
+                Created by Fahad..
+              </span>
+            </span>
+
+            <Sparkles size={16} color="#c99c6b" />
+
+          </div>
 
         </div>
 

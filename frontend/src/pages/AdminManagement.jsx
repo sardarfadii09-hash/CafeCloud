@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft, CalendarDays, ShoppingBag, MessageSquare,
-  Users, Search, Check, X, RefreshCw
+  Users, Search, Check, X, RefreshCw, XCircle
 } from 'lucide-react'
 
 import API_BASE_URL from '../services/api'
@@ -125,18 +125,39 @@ function AdminManagement() {
 
   const q = search.toLowerCase()
 
-  const filteredReservations = reservations.filter(x =>
+  const isCancelled = item =>
+    String(item.status || 'pending').toLowerCase() === 'cancelled'
+
+  // RESERVATIONS
+  const activeReservations = reservations.filter(r => !isCancelled(r))
+  const cancelledReservations = reservations.filter(isCancelled)
+
+  const filteredReservations = activeReservations.filter(x =>
     `${x.name} ${x.phone} ${x.email}`.toLowerCase().includes(q)
   )
 
-  const filteredOrders = orders.filter(x =>
+  const filteredCancelledReservations = cancelledReservations.filter(x =>
+    `${x.name} ${x.phone} ${x.email}`.toLowerCase().includes(q)
+  )
+
+  // ORDERS
+  const activeOrders = orders.filter(order => !isCancelled(order))
+  const cancelledOrders = orders.filter(isCancelled)
+
+  const filteredOrders = activeOrders.filter(x =>
     `${x.customerName} ${x.email} ${x._id}`.toLowerCase().includes(q)
   )
 
+  const filteredCancelledOrders = cancelledOrders.filter(x =>
+    `${x.customerName} ${x.email} ${x._id}`.toLowerCase().includes(q)
+  )
+
+  // MESSAGES
   const filteredMessages = messages.filter(x =>
     `${x.name} ${x.email} ${x.subject} ${x.message}`.toLowerCase().includes(q)
   )
 
+  // CUSTOMERS
   const customersMap = new Map()
 
   ;[
@@ -181,7 +202,9 @@ function AdminManagement() {
 
   const tabs = [
     { name: 'Reservations', icon: CalendarDays },
+    { name: 'Cancelled Reservations', icon: XCircle },
     { name: 'Orders', icon: ShoppingBag },
+    { name: 'Cancelled Orders', icon: XCircle },
     { name: 'Messages', icon: MessageSquare },
     { name: 'Customers', icon: Users }
   ]
@@ -210,6 +233,188 @@ function AdminManagement() {
     }
 
     return 'management-status pending'
+  }
+
+  // RESERVATIONS TABLE
+  function renderReservationsTable(reservationList, emptyMessage, cancelledView = false) {
+    return (
+      <div className="admin-management-table-wrapper">
+        <table className="admin-management-table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Date &amp; Time</th>
+              <th>Guests</th>
+              <th>Request</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {reservationList.map(r => (
+              <tr key={r._id}>
+                <td>
+                  <div className="management-person">
+                    <div className="management-avatar">
+                      {(r.name || 'C')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <strong>{r.name}</strong>
+                      <span>{r.phone}</span>
+                    </div>
+                  </div>
+                </td>
+
+                <td>
+                  <strong>{dateLabel(r.date)}</strong>
+                  <span className="management-subtext">{r.time}</span>
+                </td>
+
+                <td>
+                  <span className="management-pill">
+                    <Users size={14} /> {r.guests}
+                  </span>
+                </td>
+
+                <td>
+                  <span className="management-request">
+                    {r.message || '—'}
+                  </span>
+                </td>
+
+                <td>
+                  <span className={statusClass(r.status)}>
+                    {r.status || 'pending'}
+                  </span>
+                </td>
+
+                <td>
+                  <div className="management-actions">
+                    {cancelledView ? (
+                      <button
+                        type="button"
+                        className="management-action confirm"
+                        title="Restore Reservation"
+                        onClick={() => changeReservation(r._id, 'confirmed')}
+                      >
+                        <Check size={16} />
+                      </button>
+                    ) : (
+                      <>
+                        {String(r.status || 'pending').toLowerCase() !== 'confirmed' && (
+                          <button
+                            type="button"
+                            className="management-action confirm"
+                            title="Confirm"
+                            onClick={() => changeReservation(r._id, 'confirmed')}
+                          >
+                            <Check size={16} />
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          className="management-action cancel"
+                          title="Cancel"
+                          onClick={() => changeReservation(r._id, 'cancelled')}
+                        >
+                          <X size={16} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+
+            {reservationList.length === 0 && (
+              <tr>
+                <td colSpan="6">{emptyMessage}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  // ORDERS TABLE
+  function renderOrdersTable(orderList, emptyMessage) {
+    return (
+      <div className="admin-management-table-wrapper">
+        <table className="admin-management-table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Customer</th>
+              <th>Items</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Update</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {orderList.map(o => (
+              <tr key={o._id}>
+                <td>
+                  <strong className="management-order-id">
+                    {o._id.slice(-6)}
+                  </strong>
+                  <span className="management-subtext">
+                    {dateLabel(o.createdAt)}
+                  </span>
+                </td>
+
+                <td>
+                  <strong>{o.customerName}</strong>
+                  <span className="management-subtext">{o.phone}</span>
+                </td>
+
+                <td>
+                  <span className="management-request">
+                    {(o.items || [])
+                      .map(i => `${i.quantity} × ${i.name}`)
+                      .join(', ')}
+                  </span>
+                </td>
+
+                <td>
+                  <strong>Rs. {o.total}</strong>
+                </td>
+
+                <td>
+                  <span className={statusClass(o.status)}>
+                    {o.status || 'pending'}
+                  </span>
+                </td>
+
+                <td>
+                  <select
+                    className="management-status-select"
+                    value={String(o.status || 'pending').toLowerCase()}
+                    onChange={e => changeOrder(o._id, e.target.value)}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="preparing">Preparing</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </td>
+              </tr>
+            ))}
+
+            {orderList.length === 0 && (
+              <tr>
+                <td colSpan="6">{emptyMessage}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    )
   }
 
   return (
@@ -297,6 +502,7 @@ function AdminManagement() {
           </div>
         ) : (
           <>
+            {/* ACTIVE RESERVATIONS */}
             {activeTab === 'Reservations' && (
               <div className="admin-management-card">
                 <div className="admin-management-card-header">
@@ -306,192 +512,79 @@ function AdminManagement() {
                   </div>
 
                   <span className="admin-count-badge">
-                    {reservations.length} Total
+                    {activeReservations.length} Active
                   </span>
                 </div>
 
-                <div className="admin-management-table-wrapper">
-                  <table className="admin-management-table">
-                    <thead>
-                      <tr>
-                        <th>Customer</th>
-                        <th>Date &amp; Time</th>
-                        <th>Guests</th>
-                        <th>Request</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {filteredReservations.map(r => (
-                        <tr key={r._id}>
-                          <td>
-                            <div className="management-person">
-                              <div className="management-avatar">
-                                {(r.name || 'C')[0].toUpperCase()}
-                              </div>
-                              <div>
-                                <strong>{r.name}</strong>
-                                <span>{r.phone}</span>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td>
-                            <strong>{dateLabel(r.date)}</strong>
-                            <span className="management-subtext">{r.time}</span>
-                          </td>
-
-                          <td>
-                            <span className="management-pill">
-                              <Users size={14} /> {r.guests}
-                            </span>
-                          </td>
-
-                          <td>
-                            <span className="management-request">
-                              {r.message || '—'}
-                            </span>
-                          </td>
-
-                          <td>
-                            <span className={statusClass(r.status)}>
-                              {r.status || 'pending'}
-                            </span>
-                          </td>
-
-                          <td>
-                            <div className="management-actions">
-                              {r.status !== 'confirmed' && (
-                                <button
-                                  type="button"
-                                  className="management-action confirm"
-                                  title="Confirm"
-                                  onClick={() =>
-                                    changeReservation(r._id, 'confirmed')
-                                  }
-                                >
-                                  <Check size={16} />
-                                </button>
-                              )}
-
-                              {r.status !== 'cancelled' && (
-                                <button
-                                  type="button"
-                                  className="management-action cancel"
-                                  title="Cancel"
-                                  onClick={() =>
-                                    changeReservation(r._id, 'cancelled')
-                                  }
-                                >
-                                  <X size={16} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-
-                      {filteredReservations.length === 0 && (
-                        <tr>
-                          <td colSpan="6">Koi reservation nahi mili.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                {renderReservationsTable(
+                  filteredReservations,
+                  'Koi active reservation nahi mili.'
+                )}
               </div>
             )}
 
+            {/* CANCELLED RESERVATIONS */}
+            {activeTab === 'Cancelled Reservations' && (
+              <div className="admin-management-card">
+                <div className="admin-management-card-header">
+                  <div>
+                    <span className="section-label">RESERVATION HISTORY</span>
+                    <h2>Cancelled Reservations</h2>
+                  </div>
+
+                  <span className="admin-count-badge">
+                    {cancelledReservations.length} Cancelled
+                  </span>
+                </div>
+
+                {renderReservationsTable(
+                  filteredCancelledReservations,
+                  'Koi cancelled reservation nahi mili.',
+                  true
+                )}
+              </div>
+            )}
+
+            {/* ACTIVE ORDERS */}
             {activeTab === 'Orders' && (
               <div className="admin-management-card">
                 <div className="admin-management-card-header">
                   <div>
-                    <span className="section-label">CUSTOMER ORDERS</span>
+                    <span className="section-label">ACTIVE CUSTOMER ORDERS</span>
                     <h2>Orders</h2>
                   </div>
 
                   <span className="admin-count-badge">
-                    {orders.length} Orders
+                    {activeOrders.length} Active
                   </span>
                 </div>
 
-                <div className="admin-management-table-wrapper">
-                  <table className="admin-management-table">
-                    <thead>
-                      <tr>
-                        <th>Order</th>
-                        <th>Customer</th>
-                        <th>Items</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                        <th>Update</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {filteredOrders.map(o => (
-                        <tr key={o._id}>
-                          <td>
-                            <strong className="management-order-id">
-                              {o._id.slice(-6)}
-                            </strong>
-                            <span className="management-subtext">
-                              {dateLabel(o.createdAt)}
-                            </span>
-                          </td>
-
-                          <td>
-                            <strong>{o.customerName}</strong>
-                            <span className="management-subtext">{o.phone}</span>
-                          </td>
-
-                          <td>
-                            <span className="management-request">
-                              {(o.items || [])
-                                .map(i => `${i.quantity} × ${i.name}`)
-                                .join(', ')}
-                            </span>
-                          </td>
-
-                          <td>
-                            <strong>Rs. {o.total}</strong>
-                          </td>
-
-                          <td>
-                            <span className={statusClass(o.status)}>
-                              {o.status}
-                            </span>
-                          </td>
-
-                          <td>
-                            <select
-                              className="management-status-select"
-                              value={o.status || 'pending'}
-                              onChange={e => changeOrder(o._id, e.target.value)}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="confirmed">Confirmed</option>
-                              <option value="preparing">Preparing</option>
-                              <option value="completed">Completed</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
-
-                      {filteredOrders.length === 0 && (
-                        <tr>
-                          <td colSpan="6">Koi order nahi mila.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                {renderOrdersTable(filteredOrders, 'Koi active order nahi mila.')}
               </div>
             )}
 
+            {/* CANCELLED ORDERS */}
+            {activeTab === 'Cancelled Orders' && (
+              <div className="admin-management-card">
+                <div className="admin-management-card-header">
+                  <div>
+                    <span className="section-label">ORDER HISTORY</span>
+                    <h2>Cancelled Orders</h2>
+                  </div>
+
+                  <span className="admin-count-badge">
+                    {cancelledOrders.length} Cancelled
+                  </span>
+                </div>
+
+                {renderOrdersTable(
+                  filteredCancelledOrders,
+                  'Koi cancelled order nahi mila.'
+                )}
+              </div>
+            )}
+
+            {/* MESSAGES */}
             {activeTab === 'Messages' && (
               <div className="admin-management-card">
                 <div className="admin-management-card-header">
@@ -558,6 +651,7 @@ function AdminManagement() {
               </div>
             )}
 
+            {/* CUSTOMERS */}
             {activeTab === 'Customers' && (
               <div className="admin-management-card">
                 <div className="admin-management-card-header">
